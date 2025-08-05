@@ -1,0 +1,119 @@
+{
+  "SystemPreferences": {
+    "Language": "zh-CN",
+    "Region": "China",
+    "TimeZone": "Asia/Shanghai",
+    "DateFormat": "YYYY-MM-DD",
+    "TimeFormat": "24-hour",
+    "Currency": "CNY",
+    "MeasurementUnit": "metric"
+  },
+  
+  "UserInterfacePreferences": {
+    "Theme": "auto",
+    "ColorScheme": "light", 
+    "FontSize": "medium",
+    "FontFamily": "PingFang SC",
+    "HighContrast": false,
+    "ReduceMotion": false,
+    "ShowAnimations": true,
+    "WindowTransparency": 0.95,
+    "CornerRadius": "medium"
+  },
+  
+  "AIAssistantPreferences": {
+    "VoiceWakeWord": "小白",
+    "VoiceGender": "female",
+    "VoiceSpeed": 1.0,
+    "ResponseStyle": "friendly",
+    "PrivacyLevel": "high",
+    "LearningEnabled": true,
+    "ProactiveAssistance": true,
+    "ContextAwareness": true,
+    "MultiLanguageSupport": ["zh-CN", "en-US"]
+  },
+  
+  "PrivacyPreferences": {
+    "DataCollection": "minimal",
+    "LocalProcessingFirst": true,
+    "CloudSyncEnabled": false,
+    "TelemetryEnabled": false,
+    "CrashReportingEnabled": true,
+    "AnalyticsLevel": "none",
+    "ThirdPartyDataSharing": false,
+    "BiometricAuth": true,
+    "EncryptionLevel": "maximum"
+  },
+  
+  "PerformancePreferences": {
+    "PowerMode": "balanced",
+    "CPUGovernor": "adaptive",
+    "GPUMode": "auto",
+    "MemoryManagement": "intelligent",
+    "BackgroundProcesses": "limited",
+    "IndexingEnabled": true,
+    "PredictiveCaching": true,
+    "AIAcceleration": true
+  },
+  
+  "NetworkPreferences": {
+    "AutoConnect": true,
+    "PreferWiFi": true,
+    "DataSaver": false,
+    "VPNAutoConnect": false,
+    "DNSProvider": "auto",
+    "FirewallLevel": "medium",
+    "P2PEnabled": true,
+    "CloudSyncQuality": "high"
+  },
+  
+  "NotificationPreferences": {
+    "DoNotDisturb": {
+      "Enabled": false,
+      "StartTime": "22:00",
+      "EndTime": "08:00",
+      "AllowCritical": true
+    },
+    "NotificationStyle": "banner",
+    "SoundEnabled": true,
+    "VibrationEnabled": true,
+    "ShowPreviews": true,
+    "GroupNotifications": true,
+    "AIFiltering": true
+  },
+  
+  "AccessibilityPreferences": {
+    "ScreenReader": false,
+    "VoiceControl": false,
+    "LargeText": false,
+    "HighContrast": false,
+    "ReduceMotion": false,
+    "StickyKeys": false,
+    "MouseKeys": false,
+    "ZoomEnabled": false,
+    "ColorBlindAssist": false,
+    "VoiceNavigation": false
+  },
+  
+  "SecurityPreferences": {
+    "AutoLock": true,
+    "LockTimeout": 300,
+    "RequirePasswordAfterSleep": true,
+    "ShowPasswordHints": false,
+    "AutomaticUpdates": true,
+    "SecurityNotifications": true,
+    "SandboxMode": "strict",
+    "FirewallEnabled": true,
+    "AntivirusEnabled": true
+  },
+  
+  "DeveloperPreferences": {
+    "DeveloperMode": false,
+    "DebugLogging": false,
+    "ShowSystemFiles": false,
+    "EnableHotReload": false,
+    "AllowUnsignedApps": false,
+    "ShowPerformanceMetrics": false,
+    "EnableAPIAccess": false
+  }
+}
