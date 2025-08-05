@@ -1,0 +1,172 @@
+version: '3.8'
+
+services:
+  # ByenatOS 开发环境
+  byenatos-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "8080:8080"  # API服务
+      - "8081:8081"  # WebSocket服务
+      - "8082:8082"  # 管理面板
+      - "5000:5000"  # 调试端口
+    environment:
+      - BYENATOS_ENV=development
+      - BYENATOS_LOG_LEVEL=debug
+      - RUST_LOG=debug
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://byenatos:byenatos@postgres:5432/byenatos_dev
+      - VECTOR_DB_URL=http://vector-db:8000
+      - HOT_RELOAD=true
+    volumes:
+      # 源码挂载用于热重载
+      - ./VirtualCore:/app/VirtualCore
+      - ./Kernel:/app/Kernel
+      - ./LocalAIProcessor:/app/LocalAIProcessor
+      - ./PersonalizationEngine:/app/PersonalizationEngine
+      - ./InterfaceAbstraction:/app/InterfaceAbstraction
+      - ./Config:/app/Config
+      - ./Documentation:/app/Documentation
+      # 数据持久化
+      - byenatos_dev_data:/opt/byenatos/data
+      - byenatos_dev_logs:/opt/byenatos/logs
+    depends_on:
+      - redis
+      - postgres-dev
+      - vector-db-dev
+    restart: "no"  # 开发环境不自动重启
+    tty: true
+    stdin_open: true
+
+  # Redis 开发环境
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb
+    restart: unless-stopped
+
+  # PostgreSQL 开发数据库
+  postgres-dev:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=byenatos_dev
+      - POSTGRES_USER=byenatos
+      - POSTGRES_PASSWORD=byenatos
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./Scripts/sql/dev_init.sql:/docker-entrypoint-initdb.d/dev_init.sql:ro
+    restart: unless-stopped
+
+  # 向量数据库开发环境
+  vector-db-dev:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+    volumes:
+      - vector_dev_data:/chroma/chroma
+    restart: unless-stopped
+
+  # 开发工具容器
+  dev-tools:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu
+    volumes:
+      - .:/workspace
+      - dev_tools_cache:/workspace/.devcontainer
+    working_dir: /workspace
+    command: sleep infinity
+    profiles: ["tools"]
+
+  # 测试数据库 (用于集成测试)
+  postgres-test:
+    image: postgres:15-alpine
+    ports:
+      - "5433:5432"
+    environment:
+      - POSTGRES_DB=byenatos_test
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+    tmpfs:
+      - /var/lib/postgresql/data  # 使用内存存储，测试后自动清理
+    profiles: ["test"]
+
+  # 测试Redis
+  redis-test:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    command: redis-server --appendonly no  # 测试环境不需要持久化
+    profiles: ["test"]
+
+  # Jupyter Notebook (用于数据分析和模型开发)
+  jupyter:
+    image: jupyter/scipy-notebook:latest
+    ports:
+      - "8888:8888"
+    environment:
+      - JUPYTER_ENABLE_LAB=yes
+    volumes:
+      - ./Notebooks:/home/jovyan/work
+      - jupyter_data:/home/jovyan/.local
+    profiles: ["jupyter"]
+
+  # MinIO (S3兼容的对象存储，用于测试文件上传)
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=byenatos
+      - MINIO_ROOT_PASSWORD=byenatos123
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    profiles: ["storage"]
+
+  # 文档服务器 (用于本地文档开发)
+  docs:
+    image: squidfunk/mkdocs-material:latest
+    ports:
+      - "8888:8000"
+    volumes:
+      - ./Documentation:/docs
+    command: serve --dev-addr=0.0.0.0:8000
+    profiles: ["docs"]
+
+  # API文档服务器
+  swagger-ui:
+    image: swaggerapi/swagger-ui:latest
+    ports:
+      - "8083:8080"
+    environment:
+      - SWAGGER_JSON=/docs/api.yaml
+    volumes:
+      - ./Documentation/APIs:/docs
+    profiles: ["api-docs"]
+
+volumes:
+  byenatos_dev_data:
+    driver: local
+  byenatos_dev_logs:
+    driver: local
+  postgres_dev_data:
+    driver: local
+  vector_dev_data:
+    driver: local
+  dev_tools_cache:
+    driver: local
+  jupyter_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  default:
+    name: byenatos-dev-network

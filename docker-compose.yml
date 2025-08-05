@@ -1,0 +1,149 @@
+version: '3.8'
+
+services:
+  # ByenatOS 核心服务
+  byenatos-core:
+    build: .
+    ports:
+      - "8080:8080"  # API服务
+      - "8081:8081"  # WebSocket服务
+      - "8082:8082"  # 管理面板
+    environment:
+      - BYENATOS_ENV=production
+      - BYENATOS_LOG_LEVEL=info
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://byenatos:byenatos@postgres:5432/byenatos
+    volumes:
+      - byenatos_data:/opt/byenatos/data
+      - byenatos_logs:/opt/byenatos/logs
+      - ./Config:/opt/byenatos/config:ro
+    depends_on:
+      - redis
+      - postgres
+      - vector-db
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Redis 缓存和会话存储
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # PostgreSQL 主数据库
+  postgres:
+    image: postgres:15-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=byenatos
+      - POSTGRES_USER=byenatos
+      - POSTGRES_PASSWORD=byenatos
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./Scripts/sql/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U byenatos"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+
+  # 向量数据库 (Chroma)
+  vector-db:
+    image: chromadb/chroma:latest
+    ports:
+      - "8000:8000"
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+    volumes:
+      - vector_data:/chroma/chroma
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Nginx 反向代理
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Scripts/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./Scripts/nginx/ssl:/etc/nginx/ssl:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - byenatos-core
+    restart: unless-stopped
+
+  # 监控服务 (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./Scripts/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  # 可视化监控 (Grafana)
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./Scripts/monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./Scripts/monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+volumes:
+  byenatos_data:
+    driver: local
+  byenatos_logs:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  vector_data:
+    driver: local
+  nginx_logs:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  default:
+    name: byenatos-network

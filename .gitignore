@@ -1,0 +1,241 @@
+# ByenatOS .gitignore
+
+# Rust
+target/
+Cargo.lock
+*.pdb
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+*.pyc
+*.pyo
+*.pyd
+*.whl
+pip-log.txt
+pip-delete-this-directory.txt
+.tox/
+.coverage
+.coverage.*
+.cache
+.pytest_cache/
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.eslintcache
+*.tgz
+.yarn-integrity
+.next
+
+# IDE and Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# ByenatOS specific
+/data/
+/logs/
+/tmp/
+*.db
+*.sqlite
+*.sqlite3
+
+# Configuration files with secrets
+.env.local
+.env.production
+config/secrets.yaml
+config/api_keys.yaml
+
+# Build artifacts
+/target/
+/build/
+/dist/
+*.deb
+*.rpm
+*.tar.gz
+*.zip
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Kubernetes
+*.kubeconfig
+
+# SSL certificates
+*.pem
+*.key
+*.crt
+*.csr
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Test files
+test-results/
+coverage/
+
+# Documentation build
+site/
+docs/_build/
+
+# Local development
+.local/
+.cache/
+.tmp/
+
+# AI model files (large files)
+*.model
+*.bin
+*.safetensors
+models/
+checkpoints/
+
+# Vector database
+vector_data/
+embeddings/
+faiss_index/
+
+# Monitoring and logging
+prometheus_data/
+grafana_data/
+*.log
+
+# Package manager lock files (comment these if you want to track them)
+# Cargo.lock
+# package-lock.json
+# yarn.lock
+# Pipfile.lock
+
+# IDE workspace files
+*.code-workspace
+
+# Jupyter notebooks checkpoints
+.ipynb_checkpoints/
+
+# MacOS
+.AppleDouble
+.LSOverride
+
+# Windows
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Temporary files
+*.tmp
+*.temp
+
+# Runtime data
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage directory used by tools like istanbul
+coverage/
+lcov.info
+
+# nyc test coverage
+.nyc_output
+
+# Dependency directories
+jspm_packages/
+
+# TypeScript cache
+*.tsbuildinfo
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# next.js build output
+.next
+
+# nuxt.js build output
+.nuxt
+
+# vuepress build output
+.vuepress/dist
+
+# Serverless directories
+.serverless
+
+# FuseBox cache
+.fusebox/
+
+# DynamoDB Local files
+.dynamodb/
+
+# TernJS port file
+.tern-port
