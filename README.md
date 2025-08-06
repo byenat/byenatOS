@@ -1,4 +1,4 @@
-# ByenatOS - Personal AI Middleware for the AI Era
+# ByenatOS - AI Operating System for App Developers
 
 <div align="center">
 
@@ -11,236 +11,111 @@
 
 </div>
 
-## 🚀 Project Overview
+## 🚀 What is ByenatOS?
 
-ByenatOS is an **open-source virtual personal operating system** designed for the AI era. It's not a traditional hardware operating system, but an intelligent middleware layer between applications and users. Just like an APP is a complete computer handling user I/O (mouse, keyboard, display), ByenatOS serves as the "OS + CPU" for this computer, specifically processing data input from APPs and providing personalized intelligent output.
+ByenatOS is an **AI operating system** that gives any app personalized AI capabilities with just a few lines of code, without requiring AI expertise.
 
-### ⭐ Why Choose ByenatOS?
+**Core Value**: In the AI era, each app with AI capabilities is like a computer. ByenatOS is the operating system for this computer, providing personalized AI by calling local large models (CPU).
 
-- 🎯 **Personalized AI Middleware** - Unified personalized AI capabilities for all applications
-- 🔐 **Privacy First** - Personal data processed locally, never uploaded
-- 🛠️ **Developer Friendly** - Simple APIs, rich SDKs, quick integration
-- 🌍 **Open Source Ecosystem** - MIT license, community-driven, business-friendly
-- ⚡ **High Performance** - < 100ms PSP generation, lightweight deployment
-- 🏢 **Enterprise Ready** - Private deployment and enterprise features support
+**Key Advantage**: Unlike ChatGPT or Claude that only provide personalized experience within their own products, ByenatOS collects memory across all apps to create unified personal memory, enabling enhanced AI experience across any large model product.
 
-## 🧠 Core Innovation: HiNATA ≈ Virtual HDD, PSP ≈ Virtual Memory
+## ⭐ Why Choose ByenatOS?
 
-**Key Design Principle**:
-- **HiNATA ≈ Virtual Hard Drive** - Unlimited storage for all historical personal data
-- **PSP ≈ Virtual Memory** - Strict capacity limits (prompt length), high-quality curated content
-
-**Why This Analogy is Critical**:
-Due to online AI models' context window limitations, PSP must maximize personalized effects within limited space. This requires ByenatOS to design a "memory manager" similar to operating systems, intelligently filtering the most relevant and important information from massive HiNATA data to generate PSP.
-
-## 🎯 PSP Strategy Management System
-
-**Dual-Layer Strategy Architecture**:
-```
-┌─────────────────────────────────────────────────────────────┐
-│                PSP Strategy Management                      │
-├─────────────────────────────────────────────────────────────┤
-│ PSP Production Strategy   │ Deep analysis to generate        │
-│ (Low Frequency)          │ strategy candidates from HiNATA  │
-│ • Day/week level         │ • User behavior pattern mining   │
-│ • Strategy library       │ • Multiple personalization       │
-│   construction          │   strategy generation            │
-├─────────────────────────────────────────────────────────────┤  
-│ PSP Invocation Strategy  │ Intelligently select and combine │
-│ (High Frequency)         │ optimal PSP                      │
-│ • Per query execution    │ • Context relevance matching     │
-│ • Dynamic strategy combo │ • Maximize effect within tokens  │
-├─────────────────────────────────────────────────────────────┤
-│ User Feedback Loop       │ Strategy iteration driven by     │
-│ • Satisfaction scoring   │ satisfaction scores              │
-│ • Strategy effect        │ • Dynamic strategy weight        │
-│   tracking              │   adjustment                      │
-└─────────────────────────────────────────────────────────────┘
-```
-
-**User Feedback-Driven Iteration**:
-1. **Satisfied Feedback** → Strengthen relevant strategy weights, increase invocation probability
-2. **Unsatisfied Feedback** → Reduce strategy weights, trigger new strategy generation
-3. **Strategy Attribution** → Precisely identify which strategy contributed to good/bad results
-4. **Effect Evaluation** → Long-term tracking of strategy performance, eliminate ineffective strategies
-5. **Continuous Learning** → Continuously optimize strategy selection and combination based on feedback
+- 🚀 **Zero AI Experience Required** - Just a few lines of code
+- 🎯 **Cross-App Memory** - Unified personal memory across all apps and AI models
+- 🔐 **Privacy First** - Local data processing, never uploaded
+- 🌍 **Completely Free** - MIT license, no hidden fees
+- ⚡ **Lightweight** - < 100ms response, no performance impact
 
 ## 🚀 Quick Start
 
-### Install ByenatOS
+### Get Your API Key
+1. Visit [developer.byenatos.org](https://developer.byenatos.org)
+2. Create a free account
+3. Generate your API key
 
+### Install SDK
 ```bash
-# Quick deployment with Docker
-docker run -d -p 8080:8080 byenatos/byenatos:latest
-
-# Or compile from source
-git clone https://github.com/byenatos/byenatos.git
-cd byenatos
-./Scripts/install.sh
-```
-
-### Integrate into Your Application
-
-#### JavaScript/Node.js
-```bash
+# JavaScript/Node.js
 npm install @byenatos/sdk
-```
 
-```javascript
-import { ByenatOS } from '@byenatos/sdk';
-
-const client = new ByenatOS({
-  apiKey: 'your_api_key'
-});
-
-// Submit user behavior data
-await client.hinata.submit({
-  source: 'my-app',
-  highlight: 'Content user focused on',
-  note: 'Detailed context information'
-});
-
-// Get personalized prompts
-const psp = await client.psp.get({
-  domain: 'productivity',
-  context: 'task_management'
-});
-```
-
-#### Python
-```bash
+# Python
 pip install byenatos-sdk
 ```
 
-```python
-from byenatos import ByenatOS
+### Add AI to Your App (5 minutes)
+```javascript
+import { ByenatOS } from '@byenatos/sdk';
 
-client = ByenatOS(api_key='your_api_key')
+const byenatOS = new ByenatOS({ apiKey: 'your_api_key' });
 
-# Submit HiNATA data
-client.hinata.submit({
-    'source': 'my-app',
-    'highlight': 'Content user focused on',
-    'note': 'Detailed context information'
-})
+// Add personalized AI to your app
+async function addAIChat(userMessage) {
+  const personalizedPrompt = await byenatOS.getPersonalizedPrompt();
+  
+  const response = await openai.chat.completions.create({
+    messages: [
+      { role: "system", content: personalizedPrompt },
+      { role: "user", content: userMessage }
+    ]
+  });
+  
+  return response.choices[0].message.content;
+}
 
-# Get personalized prompts
-psp = client.psp.get(
-    domain='productivity',
-    context='task_management'
-)
+// That's it! Your app now has cross-app memory
+const aiResponse = await addAIChat("Help me analyze today's work efficiency");
 ```
 
-### Example Applications
+**🎉 Done!** Your app now has personalized AI that learns from user behavior across all applications.
 
-Check out our example applications to understand integration methods:
+## 📊 Comparison
 
-- 📝 [Smart Journal App](https://github.com/byenatos/example-journal-app)
-- 📚 [Reading Assistant App](https://github.com/byenatos/example-reading-app)
-- 🎓 [Learning Companion App](https://github.com/byenatos/example-learning-app)
+| Traditional AI Development | ByenatOS Integration |
+|---------------------------|---------------------|
+| Requires AI expertise | Zero AI experience |
+| 6-month development | Just a few lines of code |
+| High training costs | Completely free |
+| Product-locked memory | Cross-app unified memory |
+| Privacy risks | Built-in protection |
 
 ## 🤝 Contributing
 
-We welcome all forms of contributions! Whether you're a developer, designer, or documentation writer.
+We welcome all contributions! See our [Contributing Guide](CONTRIBUTING.md).
 
-### How to Contribute
-
-1. 🍴 Fork the project
-2. 🔧 Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. 💾 Commit your changes (`git commit -m 'Add amazing feature'`)
-4. 📤 Push to the branch (`git push origin feature/amazing-feature`)
-5. 🎯 Create a Pull Request
-
-### Development Environment Setup
+### Development Setup
 
 ```bash
-# Clone repository
 git clone https://github.com/byenatos/byenatos.git
 cd byenatos
-
-# Setup development environment
 ./Tools/DevEnvironment/DevSetup.sh
-
-# Run tests
-./Scripts/test.sh
-
-# Start development server
 ./Scripts/dev.sh
 ```
 
-For more details, see [Contributing Guide](CONTRIBUTING.md).
+## 📚 Documentation
 
-## 🌟 Developer Ecosystem
-
-### Get Support
-
-- 📚 [Developer Documentation](https://docs.byenatos.org)
+- 📖 [Full Documentation](https://docs.byenatos.org)
+- 🏗️ [AI Operating System Architecture](Documentation/en/Architecture/AIOperatingSystemArchitecture.md)
+- 🚀 [Integration Guide](Documentation/en/DeveloperGuide/IntegrationGuide.md)
+- 🧠 [Core Concepts](Documentation/en/UserGuide/CoreConcepts.md)
 - 💬 [GitHub Discussions](https://github.com/byenatos/byenatos/discussions)
 - 🎮 [Discord Community](https://discord.gg/byenatos)
-- 📧 [Email Support](mailto:support@byenatos.org)
 
-### Developer Program
+## 📈 Project Status
 
-- 🆓 **Free Use** - Personal and open source projects
-- 🏢 **Enterprise License** - Commercial support and advanced features
-- 🎯 **Developer Certification** - Become a certified developer with special benefits
-- 💰 **Monetization Support** - App store and revenue sharing
-
-See the complete [Developer Ecosystem Program](Documentation/DeveloperEcosystem/DeveloperProgram.md).
-
-## 📊 Project Status
-
-### Current Stage
-- 🏗️ **Alpha Stage** - Core architecture implementation in progress
-- 📅 **Expected Beta** - Q2 2024
+- 🏗️ **Alpha Stage** - Core implementation in progress
+- 📅 **Beta Expected** - Q2 2024
 - 🎯 **Stable Release** - Q4 2024
-
-### Roadmap
-- [x] Virtual system architecture design
-- [x] PSP strategy management system
-- [ ] Core API implementation
-- [ ] Multi-language SDK development
-- [ ] Mobile support
-- [ ] Enterprise features
-
-See detailed [Project Roadmap](https://github.com/byenatos/byenatos/projects).
-
-## 📈 Community Stats
-
-<div align="center">
-
-![GitHub stars](https://img.shields.io/github/stars/byenatos/byenatos)
-![GitHub forks](https://img.shields.io/github/forks/byenatos/byenatos)
-![GitHub issues](https://img.shields.io/github/issues/byenatos/byenatos)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/byenatos/byenatos)
-
-</div>
-
-## 🏆 Acknowledgments
-
-Thanks to all developers and users who contribute to ByenatOS:
-
-- All [contributors](https://github.com/byenatos/byenatos/graphs/contributors)
-- Community users providing feedback and suggestions
-- Open source community best practices inspiration
 
 ## 📄 License
 
-This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LICENSE) file for details.
+MIT License - see [LICENSE](LICENSE) for details.
 
-### Commercial Use
-- ✅ **Free Use** - Personal and commercial projects
-- ✅ **Modify and Distribute** - Keep copyright notice
-- ✅ **Private Deployment** - Enterprise internal use
-- 🏢 **Enterprise Support** - Optional commercial support services
+## 🔗 Links
 
-## 🔗 Related Links
-
-- 🌐 [Official Website](https://byenatos.org)
-- 📚 [Documentation Center](https://docs.byenatos.org)  
-- 👥 [Community Forum](https://community.byenatos.org)
+- 🌐 [Website](https://byenatos.org)
+- 📚 [Docs](https://docs.byenatos.org)
 - 🐦 [Twitter](https://twitter.com/ByenatOS)
-- 📺 [YouTube](https://youtube.com/@ByenatOS)
 
 ---
 
@@ -248,6 +123,6 @@ This project is licensed under the [MIT License](LICENSE) - see the [LICENSE](LI
 
 **⭐ If this project helps you, please give us a Star!**
 
-*Let's build the personalized application ecosystem for the AI era together* 🚀
+*Building the personalized AI ecosystem for the AI era* 🚀
 
 </div>
