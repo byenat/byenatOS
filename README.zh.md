@@ -13,19 +13,19 @@
 
 ## 🚀 ByenatOS是什么？
 
-ByenatOS是一个**AI操作系统**，让任何应用只需几行代码就能获得个性化AI能力，无需AI专业知识。
+ByenatOS是一个**即插即用的 AI 插件**，让应用开发者通过几行代码就能让任何应用获得个性化 AI 能力，同时也可以将其视为是**AI操作系统**，帮助具有 AI 功能的应用获得memory能力，为应用用户提供个性化的 AI 能力。
 
-**核心价值**：如果把带有AI能力的APP比作一台电脑。ByenatOS希望成为这台电脑的操作系统，为应用提供个性化AI。
+**核心优势**：
+- 与ChatGPT或Claude只能在各自产品内提供个性化AI体验不同，ByenatOS可以在本地保存 memory，对于支持上传 memory的产品都可以调用，让用户在任何大模型相关产品中都能获得增强的AI体验。同时用户不用绑定在单个大模型上。
+- 如果用户有多个 APP 同时调用 byenatOS 来实现 AI 能力。则 byenatOS 可以帮助用户跨APP收集memory，形成统一的个人memory。
 
-**核心优势**：与ChatGPT或Claude只能在各自产品内提供个性化体验不同，ByenatOS跨APP收集memory，形成统一的个人memory，让用户在任何大模型产品中都能获得增强的AI体验。
+## ⭐ 开发者为什么选择ByenatOS？
 
-## ⭐ 为什么选择ByenatOS？
-
-- 🚀 **零AI经验要求** - 只需几行代码
-- 🎯 **跨APP memory** - 统一的个人memory，跨所有应用和AI模型
-- 🔐 **隐私优先** - 本地数据处理，永不上传
+- 🚀 **零AI开发经验** - 只需几行代码即可接入个性化AI能力
+- 🎯 **跨APP memory** - 统一的个人memory，支持在不同应用和AI模型中调用
+- 🔐 **隐私优先** - 本地数据处理，永不上传个人敏感信息
 - 🌍 **完全免费** - MIT许可证，无隐藏费用
-- ⚡ **轻量级** - < 100ms响应，不影响性能
+- ⚡ **即插即用** - 作为AI插件，轻松集成到任何应用中
 
 ## 🚀 快速开始
 
@@ -67,13 +67,13 @@ async function addAIChat(userMessage) {
 const aiResponse = await addAIChat("帮我分析今天的工作效率");
 ```
 
-**🎉 完成！** 您的应用现在拥有从所有应用程序的用户行为中学习的个性化AI。
+**🎉 完成！** 您的应用现在拥有了即插即用的个性化AI插件，可以从所有应用程序的用户行为中学习。
 
 ## 📊 对比
 
-| 传统AI开发 | ByenatOS集成 |
-|------------|-------------|
-| 需要AI专业知识 | 零AI经验要求 |
+| 传统AI开发 | ByenatOS插件集成 |
+|------------|----------------|
+| 需要AI专业知识 | 零AI开发经验 |
 | 6个月开发周期 | 只需几行代码 |
 | 高昂训练成本 | 完全免费 |
 | 产品锁定的memory | 跨APP统一memory |
@@ -95,7 +95,7 @@ cd byenatos
 ## 📚 文档
 
 - 📖 [完整文档](https://docs.byenatos.org)
-- 🏗️ [AI操作系统架构](Documentation/en/Architecture/AIOperatingSystemArchitecture.md)
+- 🏗️ [AI插件架构](Documentation/en/Architecture/AIOperatingSystemArchitecture.md)
 - 🚀 [集成指南](Documentation/en/DeveloperGuide/IntegrationGuide.md)
 - 🧠 [核心概念](Documentation/en/UserGuide/CoreConcepts.md)
 - 💬 [GitHub讨论](https://github.com/byenatos/byenatos/discussions)
@@ -123,6 +123,6 @@ MIT许可证 - 详见[LICENSE](LICENSE)。
 
 **⭐ 如果这个项目对您有帮助，请给我们一个Star！**
 
-*为AI时代构建个性化AI生态* 🚀
+*为AI时代构建即插即用的个性化AI插件生态* 🚀
 
 </div>

@@ -13,19 +13,19 @@
 
 ## 🚀 What is ByenatOS?
 
-ByenatOS is an **AI operating system** that gives any app personalized AI capabilities with just a few lines of code, without requiring AI expertise.
+ByenatOS is a **plug-and-play AI plugin** that enables app developers to add personalized AI capabilities to any application with just a few lines of code. It can also be viewed as an **AI operating system** that helps AI-enabled applications gain memory capabilities, providing personalized AI experiences for app users.
 
-**Core Value**: In the AI era, each app with AI capabilities is like a computer. ByenatOS is the operating system for this computer, providing personalized AI by calling local large models (CPU).
-
-**Key Advantage**: Unlike ChatGPT or Claude that only provide personalized experience within their own products, ByenatOS collects memory across all apps to create unified personal memory, enabling enhanced AI experience across any large model product.
+**Core Advantages**:
+- Unlike ChatGPT or Claude that only provide personalized experiences within their own products, ByenatOS can save memory locally and can be called by any product that supports memory upload, enabling users to have enhanced AI experiences across any large model product without being tied to a single model.
+- If users have multiple apps simultaneously calling ByenatOS to implement AI capabilities, ByenatOS can help users collect memory across apps, forming unified personal memory.
 
 ## ⭐ Why Choose ByenatOS?
 
-- 🚀 **Zero AI Experience Required** - Just a few lines of code
+- 🚀 **Zero AI Development Experience** - Just a few lines of code to integrate personalized AI capabilities
 - 🎯 **Cross-App Memory** - Unified personal memory across all apps and AI models
-- 🔐 **Privacy First** - Local data processing, never uploaded
+- 🔐 **Privacy First** - Local data processing, never uploads personal sensitive information
 - 🌍 **Completely Free** - MIT license, no hidden fees
-- ⚡ **Lightweight** - < 100ms response, no performance impact
+- ⚡ **Plug-and-Play** - Easy integration as an AI plugin into any application
 
 ## 🚀 Quick Start
 
@@ -67,13 +67,13 @@ async function addAIChat(userMessage) {
 const aiResponse = await addAIChat("Help me analyze today's work efficiency");
 ```
 
-**🎉 Done!** Your app now has personalized AI that learns from user behavior across all applications.
+**🎉 Done!** Your app now has a plug-and-play personalized AI plugin that learns from user behavior across all applications.
 
 ## 📊 Comparison
 
-| Traditional AI Development | ByenatOS Integration |
-|---------------------------|---------------------|
-| Requires AI expertise | Zero AI experience |
+| Traditional AI Development | ByenatOS Plugin Integration |
+|---------------------------|---------------------------|
+| Requires AI expertise | Zero AI development experience |
 | 6-month development | Just a few lines of code |
 | High training costs | Completely free |
 | Product-locked memory | Cross-app unified memory |
@@ -95,7 +95,7 @@ cd byenatos
 ## 📚 Documentation
 
 - 📖 [Full Documentation](https://docs.byenatos.org)
-- 🏗️ [AI Operating System Architecture](Documentation/en/Architecture/AIOperatingSystemArchitecture.md)
+- 🏗️ [AI Plugin Architecture](Documentation/en/Architecture/AIOperatingSystemArchitecture.md)
 - 🚀 [Integration Guide](Documentation/en/DeveloperGuide/IntegrationGuide.md)
 - 🧠 [Core Concepts](Documentation/en/UserGuide/CoreConcepts.md)
 - 💬 [GitHub Discussions](https://github.com/byenatos/byenatos/discussions)
@@ -123,6 +123,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 
 **⭐ If this project helps you, please give us a Star!**
 
-*Building the personalized AI ecosystem for the AI era* 🚀
+*Building the plug-and-play personalized AI plugin ecosystem for the AI era* 🚀
 
 </div>
