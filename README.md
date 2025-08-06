@@ -25,7 +25,7 @@ ByenatOS is a **plug-and-play AI plugin** that enables app developers to add per
 - 🎯 **Cross-App Memory** - Unified personal memory across all apps and AI models
 - 🔐 **Privacy First** - Local data processing, never uploads personal sensitive information
 - 🌍 **Completely Free** - MIT license, no hidden fees
-- ⚡ **Plug-and-Play** - Easy integration as an AI plugin into any application
+- ⚡ **Optimized for Local Models** - Engineering capabilities to ensure optimal large model performance on limited local computing power
 
 ## 🚀 Quick Start
 
