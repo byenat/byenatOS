@@ -3,3 +3,5 @@ description:
 globs:
 alwaysApply: false
 ---
+在 yourpxo 项目中关于 note 的功能，自动同步到 zennote 项目中
+在 yourpxo 项目中关于 readitlater 产品的功能，制动同步到 zenread 项目中
