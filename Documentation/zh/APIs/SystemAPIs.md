@@ -67,6 +67,19 @@ fn sys_semantic_file_search(
 ```
 
 ### 2. AI服务API (AI Services API)
+### 2.1 PSP API 作用域（新增）
+
+为支持“同账号多App共享 PSP”，PSP API 支持作用域参数：
+
+```
+GET /api/psp/current?UserId=...&AppId=...&Scope=account|app
+
+说明：
+- Scope=account（默认）：返回账号级共享 PSP
+- Scope=app：返回合成后的 PSP（账号级 PSP + 指定 App 的 Overlay）
+```
+
+Overlay 由 App 在提交 HiNATA 或配置接口中声明，byenatOS 在生成 Prompt 时按顺序合成。
 
 #### 自然语言处理
 ```typescript
@@ -219,6 +232,50 @@ interface NetworkAPI {
 ```
 
 ## AI增强特性
+## LLM编排与计费（新增）
+
+为确保系统边界清晰、应用层保持轻量，ByenatOS 统一负责外部大模型调用与计费。应用仅需将问题提交给 ByenatOS 并展示返回结果。
+
+### 能力概述
+- **PSP融合**：在系统侧合成 Prompt（基于 PSP 与实时上下文）
+- **模型编排**：选择合适的外部模型（如 `gpt-4o`, `claude-3`）
+- **用量计费**：记录 token 与时长，按租户/用户维度聚合
+- **结果归档**：将 QnA 转为 HiNATA（Question→Highlight，Answer→Note），驱动 PSP 迭代
+
+### REST APIs
+
+```
+POST /api/llm/chat
+Body: {
+  "Question": string,
+  "Context"?: object,
+  "ModelPreference"?: { "Provider"?: "openai"|"anthropic"|"auto", "Model"?: string },
+  "UserProvidedApiKey"?: string, // 当用户强制自选模型时必需
+  "Format"?: "text"|"markdown"|"json"
+}
+
+Response: {
+  "Answer": string,
+  "Usage": { "PromptTokens": number, "CompletionTokens": number, "TotalTokens": number, "LatencyMs": number },
+  "Billing": { "Currency": "USD", "EstimatedCost": number, "EstimatedSavingPercent"?: number, "Fee"?: number },
+  "RoutingDecision"?: { "SelectedModel": string, "Reason": string, "Alternatives"?: string[] },
+  "PromptProfileUsed"?: { "Vendor": string, "Profile": string }
+  "Hinata": { "Id": string, "Highlight": string, "Note": string }
+}
+
+GET /api/billing/usage?UserId=...&AppId=...&From=ISODate&To=ISODate
+Response: {
+  "Summary": { "TotalRequests": number, "TotalTokens": number, "TotalCost": number, "Currency": "USD" },
+  "Breakdown": Array<{ "Date": string, "Requests": number, "Tokens": number, "Cost": number }>
+}
+```
+
+### 最佳实践
+- 应用不直接持有外部模型 API Key
+- 所有对话走 `POST /api/llm/chat` 以获得统一计费与合规
+- 重要对话均会生成 HiNATA，供后续个性化学习
+- 当用户提供 `UserProvidedApiKey` 且自选模型时，不收取手续费；Auto 模式若未更省钱，同样不收取手续费
+
 
 ### 1. 上下文感知API
 ```typescript

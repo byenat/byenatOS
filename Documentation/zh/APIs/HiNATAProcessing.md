@@ -2,7 +2,7 @@
 
 ## 概述
 
-本文档描述了ByenatOS中HiNATA数据的混合处理架构，采用App端预处理 + 系统端智能优化的分层处理策略。
+本文档描述了ByenatOS中HiNATA数据的混合处理架构，采用App端预处理 + 系统端智能优化的分层处理策略。并进一步明确：当问题来自应用（如 yourPXO 的 Chatbot），由 ByenatOS 统一完成外部大模型的调用与计费，并将【问题+回答】转换为 HiNATA（Question→Highlight，Answer→Note）在系统侧归档与迭代。
 
 ## 架构设计原则
 
@@ -59,7 +59,7 @@ App原始数据 → App端预处理 → HiNATA基础格式 → 传输到ByenatOS
 
 #### 第二层：系统端智能优化
 
-**ByenatOS职责**：
+**ByenatOS职责（更新）**：
 1. 验证和标准化HiNATA格式
 2. 全局上下文分析
 3. **本地模型智能增强**：
@@ -69,6 +69,10 @@ App原始数据 → App端预处理 → HiNATA基础格式 → 传输到ByenatOS
 4. 相似度聚类
 5. 优先级排序
 6. PSP相关性分析
+7. **在线模型编排与计费（新增）**：
+   - 将来自App的“问题”与系统 PSP 融合生成 Prompt
+   - 调用外部大模型，记录 token 与时延，估算费用
+   - 形成“问题→Highlight，回答→Note”的 HiNATA 并归档
 
 **优化后的HiNATA格式**：
 ```json
@@ -105,7 +109,8 @@ App原始数据 → App端预处理 → HiNATA基础格式 → 传输到ByenatOS
     "processing_time": "0.1s",
     "version": "1.0",
     "optimization_level": "enhanced",
-    "ai_enhanced": true
+    "ai_enhanced": true,
+    "Billing": { "PromptTokens": 123, "CompletionTokens": 456, "TotalCostUSD": 0.0123 }
   }
 }
 ```

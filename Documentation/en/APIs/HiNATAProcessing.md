@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the hybrid processing architecture for HiNATA data in ByenatOS, adopting a layered processing strategy of App-side preprocessing + system-side intelligent optimization.
+This document describes the hybrid processing architecture for HiNATA data in ByenatOS, adopting a layered processing strategy of App-side preprocessing + system-side intelligent optimization. Additionally, when a question originates from Apps (e.g., yourPXO Chatbot), ByenatOS centrally performs external LLM invocation and billing, and converts the [Question+Answer] into a HiNATA module (Question→Highlight, Answer→Note) for system-side archival and iteration.
 
 ## Architecture Design Principles
 
@@ -59,7 +59,7 @@ App Raw Data → App-side Preprocessing → HiNATA Basic Format → Transfer to 
 
 #### Layer 2: System-side Intelligent Optimization
 
-**ByenatOS Responsibilities**:
+**ByenatOS Responsibilities (Updated)**:
 1. Validate and standardize HiNATA format
 2. Global context analysis
 3. **Local Model Intelligent Enhancement**:
@@ -69,6 +69,10 @@ App Raw Data → App-side Preprocessing → HiNATA Basic Format → Transfer to 
 4. Similarity clustering
 5. Priority sorting
 6. PSP relevance analysis
+7. **Online model orchestration & billing (New)**:
+   - Merge App question with PSP to compose a prompt
+   - Invoke external LLM, track tokens and latency, estimate cost
+   - Archive HiNATA with Question→Highlight and Answer→Note
 
 **Optimized HiNATA Format**:
 ```json
@@ -105,7 +109,8 @@ App Raw Data → App-side Preprocessing → HiNATA Basic Format → Transfer to 
     "processing_time": "0.1s",
     "version": "1.0",
     "optimization_level": "enhanced",
-    "ai_enhanced": true
+    "ai_enhanced": true,
+    "Billing": { "PromptTokens": 123, "CompletionTokens": 456, "TotalCostUSD": 0.0123 }
   }
 }
 ```

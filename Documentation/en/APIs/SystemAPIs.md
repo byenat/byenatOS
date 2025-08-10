@@ -219,6 +219,64 @@ interface NetworkAPI {
 ```
 
 ## AI Enhanced Features
+## LLM Orchestration & Billing (New)
+
+To keep system boundaries clear and Apps lightweight, ByenatOS centrally handles external LLM calls and billing. Apps only submit questions and render results.
+
+### Capabilities
+- **PSP Fusion**: Compose prompts on the system side (PSP + runtime context)
+- **Model Orchestration**: Select suitable external models (e.g., `gpt-4o`, `claude-3`)
+- **Usage & Billing**: Track tokens/latency and aggregate by tenant/user
+- **Result Archival**: Convert QnA to HiNATA (Question→Highlight, Answer→Note) to drive PSP iteration
+
+### REST APIs
+
+```
+POST /api/llm/chat
+Body: {
+  "Question": string,
+  "Context"?: object,
+  "ModelPreference"?: { "Provider"?: "openai"|"anthropic"|"auto", "Model"?: string },
+  "UserProvidedApiKey"?: string, // required when user enforces self-chosen model
+  "Format"?: "text"|"markdown"|"json"
+}
+
+Response: {
+  "Answer": string,
+  "Usage": { "PromptTokens": number, "CompletionTokens": number, "TotalTokens": number, "LatencyMs": number },
+  "Billing": { "Currency": "USD", "EstimatedCost": number, "EstimatedSavingPercent"?: number, "Fee"?: number },
+  "RoutingDecision"?: { "SelectedModel": string, "Reason": string, "Alternatives"?: string[] },
+  "PromptProfileUsed"?: { "Vendor": string, "Profile": string },
+  "Hinata": { "Id": string, "Highlight": string, "Note": string }
+}
+
+GET /api/billing/usage?UserId=...&AppId=...&From=ISODate&To=ISODate
+Response: {
+  "Summary": { "TotalRequests": number, "TotalTokens": number, "TotalCost": number, "Currency": "USD" },
+  "Breakdown": Array<{ "Date": string, "Requests": number, "Tokens": number, "Cost": number }>
+}
+```
+
+### Best Practices
+- Apps should not hold external model API keys
+- Route all conversations via `POST /api/llm/chat` for unified billing and compliance
+- Significant conversations will generate HiNATA for personalization learning
+- When user provides `UserProvidedApiKey` and enforces a specific model, no service fee is charged; if Auto does not save cost, the fee is also 0
+
+### PSP API Scope (New)
+
+To support multi-App PSP sharing under the same account, PSP APIs accept a scope parameter and optional App overlay:
+
+```
+GET /api/psp/current?UserId=...&AppId=...&Scope=account|app
+
+Notes:
+- Scope=account (default): return the account-level shared PSP
+- Scope=app: return the composed PSP (account PSP + specified App overlay)
+```
+
+App overlays are declared via HiNATA submissions or configuration endpoints and are composed during prompt generation.
+
 
 ### 1. Context-Aware API
 ```typescript
