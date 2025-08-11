@@ -1,0 +1,62 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 256mb
+
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: byenatos
+      POSTGRES_USER: byenatos
+      POSTGRES_PASSWORD: byenatos
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U byenatos"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    image: python:3.11-slim
+    working_dir: /app
+    volumes:
+      - ./:/app
+    command: bash -c "chmod +x Scripts/run_api.sh && ./Scripts/run_api.sh"
+    environment:
+      SMALL_MODEL_MODE: "true"
+      ENABLE_VECTOR_INDEX: "false"
+      ENABLE_FULLTEXT_INDEX: "false"
+      REDIS_URL: redis://redis:6379
+      DATABASE_URL: postgresql://byenatos:byenatos@postgres:5432/byenatos
+      COLD_STORAGE_PATH: /tmp/byenatos_cold
+      CHROMA_PERSIST_DIR: /tmp/byenatos_chroma
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8080:8080"
+
+# Optional: Uncomment to enable full-text/vector services and set ENABLE_* to true
+#  elasticsearch:
+#    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.0
+#    environment:
+#      - discovery.type=single-node
+#      - xpack.security.enabled=false
+#    ports:
+#      - "9200:9200"
+#
+#  chroma:
+#    image: chromadb/chroma:latest
+#    environment:
+#      CHROMA_SERVER_HOST: 0.0.0.0
+#      CHROMA_SERVER_HTTP_PORT: 8000
+#    ports:
+#      - "8000:8000"

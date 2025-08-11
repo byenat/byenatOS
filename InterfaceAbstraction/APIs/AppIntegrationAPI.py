@@ -480,23 +480,44 @@ class AppIntegrationAPI:
     
     async def initialize(self):
         """初始化API服务"""
+        # 允许通过环境变量覆盖配置，实现最小可跑
+        import os
+        redis_url = os.getenv('REDIS_URL', self.config.get('redis_url', 'redis://localhost:6379'))
+        postgres_dsn = os.getenv('DATABASE_URL', self.config.get('postgres_dsn', 'postgresql://user:password@localhost/byenatos'))
+        cold_storage_path = os.getenv('COLD_STORAGE_PATH', self.config.get('cold_storage_path', '/tmp/byenatos_cold'))
+        chroma_persist_dir = os.getenv('CHROMA_PERSIST_DIR', self.config.get('chroma_persist_dir', '/tmp/byenatos_chroma'))
+        elasticsearch_url = os.getenv('ELASTICSEARCH_URL', self.config.get('elasticsearch_url', 'http://localhost:9200'))
+        enable_vector_index = os.getenv('ENABLE_VECTOR_INDEX', str(self.config.get('enable_vector_index', 'false'))).lower() == 'true'
+        enable_fulltext_index = os.getenv('ENABLE_FULLTEXT_INDEX', str(self.config.get('enable_fulltext_index', 'false'))).lower() == 'true'
+        
         # 初始化数据库连接
-        db_pool = await asyncpg.create_pool(self.config['postgres_dsn'])
-        redis_pool = aioredis.from_url(self.config['redis_url'])
+        db_pool = await asyncpg.create_pool(postgres_dsn)
+        redis_pool = aioredis.from_url(redis_url)
         
         # 初始化组件
         self.auth_manager = AuthManager(db_pool, redis_pool)
         self.rate_limiter = RateLimiter(redis_pool)
         
+        # 最小模型/轻量模式下，允许禁用耗时增强
         self.hinata_processor = HiNATAProcessor(
-            self.config['redis_url'],
-            self.config['postgres_dsn']
+            redis_url,
+            postgres_dsn
         )
         await self.hinata_processor.initialize()
         
         self.psp_engine = PSPEngine(db_pool)
         
-        self.storage_engine = StorageEngine(self.config)
+        storage_config = {
+            'redis_url': redis_url,
+            'postgres_dsn': postgres_dsn,
+            'cold_storage_path': cold_storage_path,
+            'chroma_persist_dir': chroma_persist_dir,
+            'elasticsearch_url': elasticsearch_url,
+            'enable_vector_index': enable_vector_index,
+            'enable_fulltext_index': enable_fulltext_index,
+            'cache_ttl': self.config.get('cache_ttl', 3600)
+        }
+        self.storage_engine = StorageEngine(storage_config)
         await self.storage_engine.initialize()
         
         # 创建数据库表
@@ -795,12 +816,17 @@ class AppIntegrationAPI:
 # 使用示例和启动脚本
 async def create_app() -> FastAPI:
     """创建和初始化API应用"""
+    import os
     config = {
-        'redis_url': 'redis://localhost:6379',
-        'postgres_dsn': 'postgresql://user:password@localhost/byenatos',
-        'cold_storage_path': '/data/cold_storage',
-        'chroma_persist_dir': '/data/chroma',
-        'elasticsearch_url': 'http://localhost:9200'
+        'redis_url': os.getenv('REDIS_URL', 'redis://localhost:6379'),
+        'postgres_dsn': os.getenv('DATABASE_URL', 'postgresql://user:password@localhost/byenatos'),
+        'cold_storage_path': os.getenv('COLD_STORAGE_PATH', '/tmp/byenatos_cold'),
+        'chroma_persist_dir': os.getenv('CHROMA_PERSIST_DIR', '/tmp/byenatos_chroma'),
+        'elasticsearch_url': os.getenv('ELASTICSEARCH_URL', 'http://localhost:9200'),
+        # 最小可跑默认关闭重依赖索引
+        'enable_vector_index': os.getenv('ENABLE_VECTOR_INDEX', 'false').lower() == 'true',
+        'enable_fulltext_index': os.getenv('ENABLE_FULLTEXT_INDEX', 'false').lower() == 'true',
+        'cache_ttl': int(os.getenv('CACHE_TTL', '3600')),
     }
     
     api = AppIntegrationAPI(config)

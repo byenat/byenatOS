@@ -132,8 +132,14 @@ class AIEnhancer:
     """AI增强处理器"""
     
     def __init__(self):
-        self.nlp_model = spacy.load("en_core_web_sm")
-        self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+        import os
+        self.small_model_mode = os.getenv('SMALL_MODEL_MODE', 'true').lower() == 'true'
+        if self.small_model_mode:
+            self.nlp_model = None
+            self.embedding_model = None
+        else:
+            self.nlp_model = spacy.load("en_core_web_sm")
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
         
     async def enhance_hinata(self, hinata: HiNATAData) -> HiNATAData:
         """使用AI模型增强HiNATA数据"""
@@ -156,76 +162,87 @@ class AIEnhancer:
     async def _generate_semantic_tags(self, hinata: HiNATAData) -> List[str]:
         """生成语义标签"""
         combined_text = f"{hinata.highlight} {hinata.note}"
+        if self.small_model_mode:
+            # 简化：基于词频的粗略关键词
+            words = [w.strip('.,:;!?()').lower() for w in combined_text.split()]
+            words = [w for w in words if len(w) > 3]
+            top = list(dict.fromkeys(words))[:8]
+            return top
         doc = self.nlp_model(combined_text)
-        
         tags = []
-        
-        # 提取实体
         for ent in doc.ents:
             if ent.label_ in ['PERSON', 'ORG', 'GPE', 'PRODUCT', 'EVENT']:
                 tags.append(ent.text.lower())
-        
-        # 提取关键词
         keywords = [token.lemma_.lower() for token in doc 
                    if token.pos_ in ['NOUN', 'ADJ'] and len(token.text) > 3]
-        tags.extend(keywords[:5])  # 取前5个关键词
-        
+        tags.extend(keywords[:5])
         return list(set(tags))
     
     async def _extract_recommended_highlights(self, hinata: HiNATAData) -> List[str]:
         """从note中提取推荐的highlight片段"""
         if len(hinata.note) < 100:
             return [hinata.note]
-        
+        if self.small_model_mode:
+            # 简化：按句子长度与关键词启发
+            sentences = [s.strip() for s in hinata.note.split('.') if s.strip()]
+            scores = []
+            for s in sentences:
+                score = 0
+                l = len(s.split())
+                if 12 <= l <= 40:
+                    score += 2
+                for w in ['important', 'key', 'main', 'crucial', 'significant']:
+                    if w in s.lower():
+                        score += 1
+                scores.append((s, score))
+            scores.sort(key=lambda x: x[1], reverse=True)
+            return [s for s, sc in scores[:3] if sc > 0]
         doc = self.nlp_model(hinata.note)
         sentences = [sent.text.strip() for sent in doc.sents]
-        
-        # 简单启发式：选择包含关键词最多的句子
         scored_sentences = []
         for sentence in sentences:
             score = 0
-            # 基于长度评分
             if 20 <= len(sentence.split()) <= 40:
                 score += 2
-            # 基于特殊词汇评分
             special_words = ['important', 'key', 'main', 'crucial', 'significant']
             for word in special_words:
                 if word in sentence.lower():
                     score += 1
-            
             scored_sentences.append((sentence, score))
-        
-        # 返回评分最高的3个句子
         scored_sentences.sort(key=lambda x: x[1], reverse=True)
         return [sent[0] for sent in scored_sentences[:3] if sent[1] > 0]
     
     async def _analyze_semantics(self, hinata: HiNATAData) -> Dict[str, Any]:
         """分析内容语义特征"""
         combined_text = f"{hinata.highlight} {hinata.note}"
+        if self.small_model_mode:
+            # 简化分析
+            text_lower = combined_text.lower()
+            positive_words = ['good', 'great', 'excellent', 'amazing', 'wonderful']
+            negative_words = ['bad', 'terrible', 'awful', 'horrible', 'disappointing']
+            pos_count = sum(w in text_lower for w in positive_words)
+            neg_count = sum(w in text_lower for w in negative_words)
+            sentiment = 'positive' if pos_count > neg_count else ('negative' if neg_count > pos_count else 'neutral')
+            words = [w for w in combined_text.split() if len(w) > 4]
+            avg_sentence_length = max(1, len(words)) / max(1, len(combined_text.split('.')))
+            complexity = 'high' if avg_sentence_length > 20 else ('medium' if avg_sentence_length > 10 else 'low')
+            return {
+                'main_topics': list(dict.fromkeys(words))[:3],
+                'sentiment': sentiment,
+                'complexity_level': complexity,
+                'key_concepts': list(dict.fromkeys(words))[:5]
+            }
         doc = self.nlp_model(combined_text)
-        
-        # 主题提取（简化版）
         topics = []
         for ent in doc.ents:
             if ent.label_ in ['PRODUCT', 'ORG', 'GPE']:
                 topics.append(ent.text)
-        
-        # 情感分析（简化版）
         positive_words = ['good', 'great', 'excellent', 'amazing', 'wonderful']
         negative_words = ['bad', 'terrible', 'awful', 'horrible', 'disappointing']
-        
         text_lower = combined_text.lower()
         pos_count = sum(word in text_lower for word in positive_words)
         neg_count = sum(word in text_lower for word in negative_words)
-        
-        if pos_count > neg_count:
-            sentiment = "positive"
-        elif neg_count > pos_count:
-            sentiment = "negative"
-        else:
-            sentiment = "neutral"
-        
-        # 复杂度评估
+        sentiment = "positive" if pos_count > neg_count else ("negative" if neg_count > pos_count else "neutral")
         avg_sentence_length = len(combined_text.split()) / max(len(list(doc.sents)), 1)
         if avg_sentence_length > 20:
             complexity = "high"
@@ -233,7 +250,6 @@ class AIEnhancer:
             complexity = "medium"
         else:
             complexity = "low"
-        
         return {
             "main_topics": topics[:3],
             "sentiment": sentiment,
@@ -244,6 +260,13 @@ class AIEnhancer:
     async def _generate_embedding(self, hinata: HiNATAData) -> List[float]:
         """生成向量表示"""
         combined_text = f"{hinata.highlight} {hinata.note}"
+        if self.small_model_mode:
+            # 生成一个稳定的伪向量（hash 到固定维度），用于开发最小可跑
+            import hashlib
+            h = hashlib.sha256(combined_text.encode()).digest()
+            # 生成 32 维简单向量
+            vec = [(b - 128) / 128.0 for b in h[:32]]
+            return vec
         embedding = self.embedding_model.encode(combined_text)
         return embedding.tolist()
 

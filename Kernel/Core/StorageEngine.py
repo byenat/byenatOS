@@ -843,9 +843,13 @@ class StorageEngine:
         self.warm_storage = WarmStorageManager(config['postgres_dsn'])
         self.cold_storage = ColdStorageManager(config['cold_storage_path'])
         
-        # 索引管理器
-        self.vector_index = VectorIndexManager(config['chroma_persist_dir'])
-        self.fulltext_index = FullTextIndexManager(config['elasticsearch_url'])
+        # 功能开关：默认关闭向量/全文索引，便于最小可跑
+        self.enable_vector_index: bool = bool(config.get('enable_vector_index', False))
+        self.enable_fulltext_index: bool = bool(config.get('enable_fulltext_index', False))
+        
+        # 索引管理器（按需启用）
+        self.vector_index = VectorIndexManager(config['chroma_persist_dir']) if self.enable_vector_index else None
+        self.fulltext_index = FullTextIndexManager(config['elasticsearch_url']) if self.enable_fulltext_index else None
         
         # 缓存和性能
         self.cache = {}
@@ -857,8 +861,10 @@ class StorageEngine:
         await self.hot_storage.initialize()
         await self.warm_storage.initialize()
         await self.cold_storage.initialize()
-        await self.vector_index.initialize()
-        await self.fulltext_index.initialize()
+        if self.vector_index:
+            await self.vector_index.initialize()
+        if self.fulltext_index:
+            await self.fulltext_index.initialize()
     
     async def store_hinata(self, hinata_data: Dict[str, Any], user_id: str):
         """存储HiNATA数据"""
@@ -875,7 +881,7 @@ class StorageEngine:
         else:
             await self.cold_storage.store_hinata_batch([hinata_data], user_id)
         
-        # 建立索引
+        # 建立索引（按需）
         await self._build_indexes(hinata_data, user_id)
         
         # 更新指标
@@ -904,12 +910,14 @@ class StorageEngine:
             return StorageTier.COLD
     
     async def _build_indexes(self, hinata_data: Dict[str, Any], user_id: str):
-        """建立所有索引"""
-        # 并行建立索引
-        await asyncio.gather(
-            self.vector_index.add_hinata_vector(hinata_data, user_id),
-            self.fulltext_index.index_hinata(hinata_data, user_id)
-        )
+        """建立所有索引（若启用）"""
+        tasks = []
+        if self.vector_index:
+            tasks.append(self.vector_index.add_hinata_vector(hinata_data, user_id))
+        if self.fulltext_index:
+            tasks.append(self.fulltext_index.index_hinata(hinata_data, user_id))
+        if tasks:
+            await asyncio.gather(*tasks)
     
     async def retrieve_hinata(self, hinata_id: str, user_id: str) -> Optional[Dict[str, Any]]:
         """检索单个HiNATA"""
@@ -957,15 +965,15 @@ class StorageEngine:
         start_time = time.time()
         all_candidates = set()
         
-        # 策略1: 语义相似性检索
-        if query.semantic_vector:
+        # 策略1: 语义相似性检索（若启用向量索引且提供向量）
+        if self.vector_index and query.semantic_vector:
             semantic_results = await self.vector_index.semantic_search(
                 query.semantic_vector, query.user_id, top_k=20, filters=query.filters
             )
             all_candidates.update(result['hinata_id'] for result in semantic_results)
         
-        # 策略2: 全文搜索
-        if query.query_text:
+        # 策略2: 全文搜索（若启用全文索引且提供查询文本）
+        if self.fulltext_index and query.query_text:
             text_results = await self.fulltext_index.search_text(
                 query.query_text, query.user_id, top_k=20, filters=query.filters
             )
