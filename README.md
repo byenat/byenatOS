@@ -56,17 +56,29 @@ import { ByenatOS } from '@byenatos/sdk';
 
 const byenatOS = new ByenatOS({ apiKey: 'your_api_key' });
 
-// Get personalized prompts and relevant HiNATA content
-async function getPersonalizedContent(userQuery) {
-  // Get optimized Personal System Prompt
-  const personalizedPrompt = await byenatOS.getPersonalizedPrompt(userQuery);
+// Option 1: Get question-relevant HiNATA content (independent of PSP)
+async function getRelevantHiNATA(userQuery) {
+  const response = await byenatOS.queryRelevantHiNATA({
+    user_id: 'user_123',
+    question: userQuery,
+    limit: 5
+  });
   
-  // Get relevant HiNATA file content
-  const relevantHiNATA = await byenatOS.getRelevantHiNATA(userQuery);
+  return response.relevant_hinata;
+}
+
+// Option 2: Get personalized enhancement (PSP + HiNATA combined)
+async function getPersonalizedContent(userQuery) {
+  const response = await byenatOS.getPersonalizedEnhancement({
+    user_id: 'user_123',
+    question: userQuery,
+    context_limit: 5,
+    include_psp_details: false
+  });
   
   return {
-    systemPrompt: personalizedPrompt,
-    contextData: relevantHiNATA
+    systemPrompt: response.personalized_prompt,
+    contextData: response.relevant_context
   };
 }
 

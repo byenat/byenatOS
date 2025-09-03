@@ -33,8 +33,10 @@ from Kernel.Core.StorageEngine import StorageEngine
 class AppPermission(Enum):
     """App权限类型"""
     HINATA_SUBMIT = "hinata_submit"
+    HINATA_QUERY = "hinata_query"  # 新增：问题相关HiNATA检索权限
     PSP_READ = "psp_read"
     PSP_CONTEXT = "psp_context"
+    ENHANCEMENT_ACCESS = "enhancement_access"  # 新增：综合增强功能权限
     USER_DATA_READ = "user_data_read"
     STORAGE_ACCESS = "storage_access"
     ADMIN = "admin"
@@ -121,6 +123,23 @@ class RetrievalQueryModel(BaseModel):
     min_relevance_score: float = Field(default=0.5, description="最小相关性分数")
 
 
+class HiNATAQueryModel(BaseModel):
+    """HiNATA问题查询模型"""
+    user_id: str = Field(..., description="用户标识符")
+    question: str = Field(..., max_length=2000, description="用户问题")
+    limit: int = Field(default=10, max=20, description="返回结果数量限制")
+    min_relevance_score: float = Field(default=0.5, description="最小相关性分数")
+    include_metadata: bool = Field(default=True, description="是否包含元数据")
+
+
+class PersonalizedEnhancementModel(BaseModel):
+    """个性化增强请求模型"""
+    user_id: str = Field(..., description="用户标识符")
+    question: str = Field(..., max_length=2000, description="用户问题")
+    context_limit: int = Field(default=5, max=10, description="HiNATA上下文数量限制")
+    include_psp_details: bool = Field(default=False, description="是否包含PSP详细信息")
+
+
 # 响应模型
 class HiNATASubmissionResponse(BaseModel):
     """HiNATA提交响应"""
@@ -153,6 +172,25 @@ class RetrievalResponse(BaseModel):
     total_results: int
     results: List[Dict[str, Any]]
     query_time: float
+
+
+class HiNATAQueryResponse(BaseModel):
+    """HiNATA问题查询响应"""
+    user_id: str
+    question: str
+    relevant_hinata: List[Dict[str, Any]]
+    total_results: int
+    query_time: float
+
+
+class PersonalizedEnhancementResponse(BaseModel):
+    """个性化增强响应"""
+    user_id: str
+    question: str
+    personalized_prompt: str
+    relevant_context: List[Dict[str, Any]]
+    psp_summary: Dict[str, Any]
+    processing_time: float
 
 
 class RateLimiter:
@@ -244,7 +282,13 @@ class AuthManager:
             try:
                 permission = AppPermission(perm_str)
                 # 基础权限自动授予
-                if permission in [AppPermission.HINATA_SUBMIT, AppPermission.PSP_READ, AppPermission.PSP_CONTEXT]:
+                if permission in [
+                    AppPermission.HINATA_SUBMIT, 
+                    AppPermission.HINATA_QUERY,  # 新增基础权限
+                    AppPermission.PSP_READ, 
+                    AppPermission.PSP_CONTEXT,
+                    AppPermission.ENHANCEMENT_ACCESS  # 新增基础权限
+                ]:
                     granted.add(permission)
                 # 其他权限需要审核
             except ValueError:
@@ -732,7 +776,144 @@ class AppIntegrationAPI:
                     detail=f"Search failed: {str(e)}"
                 )
         
-        # 5. 用户认证接口
+        # 5. 问题相关HiNATA检索接口（核心新增功能）
+        @self.app.post("/api/hinata/query-relevant", response_model=HiNATAQueryResponse)
+        async def query_relevant_hinata(
+            query: HiNATAQueryModel,
+            app: AppRegistration = Depends(check_permission(AppPermission.HINATA_QUERY))
+        ):
+            """根据问题检索相关HiNATA内容"""
+            start_time = time.time()
+            
+            # 检查速率限制
+            await check_rate_limit(app, query.user_id)
+            
+            try:
+                # 生成查询向量（使用本地模型）
+                query_vector = await self._generate_query_vector(query.question)
+                
+                # 构建检索查询
+                from Kernel.Core.StorageEngine import RetrievalQuery
+                
+                retrieval_query = RetrievalQuery(
+                    user_id=query.user_id,
+                    query_type="question_focused",  # 专门针对问题的检索类型
+                    query_text=query.question,
+                    semantic_vector=query_vector,
+                    limit=query.limit,
+                    min_relevance_score=query.min_relevance_score
+                )
+                
+                # 执行检索（与PSP无关的纯问题匹配）
+                results = await self.storage_engine.multi_strategy_search(retrieval_query)
+                
+                # 格式化结果
+                formatted_hinata = []
+                for result in results:
+                    hinata_item = {
+                        'hinata_id': result.hinata_id,
+                        'content_summary': result.content_summary,
+                        'relevance_score': result.relevance_score,
+                    }
+                    
+                    if query.include_metadata:
+                        hinata_item['metadata'] = {
+                            'source': result.metadata.get('source', ''),
+                            'timestamp': result.metadata.get('timestamp', ''),
+                            'attention_weight': result.metadata.get('attention_weight', 0),
+                            'quality_score': result.metadata.get('quality_score', 0)
+                        }
+                    
+                    formatted_hinata.append(hinata_item)
+                
+                query_time = time.time() - start_time
+                
+                return HiNATAQueryResponse(
+                    user_id=query.user_id,
+                    question=query.question,
+                    relevant_hinata=formatted_hinata,
+                    total_results=len(results),
+                    query_time=query_time
+                )
+                
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"HiNATA query failed: {str(e)}"
+                )
+        
+        # 6. 个性化增强接口（PSP + HiNATA结合）
+        @self.app.post("/api/enhancement/personalized", response_model=PersonalizedEnhancementResponse)
+        async def get_personalized_enhancement(
+            request: PersonalizedEnhancementModel,
+            app: AppRegistration = Depends(check_permission(AppPermission.ENHANCEMENT_ACCESS))
+        ):
+            """获取个性化增强内容（PSP + 相关HiNATA）"""
+            start_time = time.time()
+            
+            # 检查速率限制
+            await check_rate_limit(app, request.user_id)
+            
+            try:
+                # 并行获取PSP和相关HiNATA
+                psp_task = self.psp_engine.get_psp_context_for_prompt(
+                    request.user_id, request.question
+                )
+                
+                # 获取相关HiNATA（复用上面的逻辑）
+                query_vector = await self._generate_query_vector(request.question)
+                retrieval_query = RetrievalQuery(
+                    user_id=request.user_id,
+                    query_type="question_focused",
+                    query_text=request.question,
+                    semantic_vector=query_vector,
+                    limit=request.context_limit,
+                    min_relevance_score=0.5
+                )
+                hinata_task = self.storage_engine.multi_strategy_search(retrieval_query)
+                
+                # 等待两个任务完成
+                psp_context, hinata_results = await asyncio.gather(psp_task, hinata_task)
+                
+                # 生成个性化提示词
+                personalized_prompt = await self._generate_personalized_prompt(
+                    psp_context, request.question
+                )
+                
+                # 格式化HiNATA上下文
+                relevant_context = []
+                for result in hinata_results:
+                    context_item = {
+                        'content_summary': result.content_summary,
+                        'relevance_score': result.relevance_score,
+                        'source': result.metadata.get('source', ''),
+                        'timestamp': result.metadata.get('timestamp', '')
+                    }
+                    relevant_context.append(context_item)
+                
+                # 生成PSP摘要（隐私过滤后）
+                psp_summary = self.privacy_filter.filter_psp_context(
+                    psp_context, app.permissions
+                )
+                
+                processing_time = time.time() - start_time
+                
+                return PersonalizedEnhancementResponse(
+                    user_id=request.user_id,
+                    question=request.question,
+                    personalized_prompt=personalized_prompt,
+                    relevant_context=relevant_context,
+                    psp_summary=psp_summary if request.include_psp_details else {},
+                    processing_time=processing_time
+                )
+                
+            except Exception as e:
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Personalized enhancement failed: {str(e)}"
+                )
+        
+        # 7. 用户认证接口
         @self.app.post("/api/auth/user-token")
         async def generate_user_token(
             user_id: str,
@@ -786,6 +967,58 @@ class AppIntegrationAPI:
         async def health_check():
             """健康检查"""
             return {"status": "ok"}
+    
+    async def _generate_query_vector(self, question: str) -> List[float]:
+        """生成查询向量"""
+        try:
+            # 这里应该使用本地的嵌入模型
+            # 暂时返回模拟向量，实际应该调用本地模型
+            import numpy as np
+            # 模拟向量生成 - 实际应该替换为真实的嵌入模型调用
+            vector = np.random.rand(768).tolist()  # 假设使用768维向量
+            return vector
+        except Exception as e:
+            # 如果向量生成失败，返回空列表，系统会使用其他检索策略
+            return []
+    
+    async def _generate_personalized_prompt(self, psp_context: Dict[str, Any], question: str) -> str:
+        """基于PSP上下文和问题生成个性化提示词"""
+        try:
+            # 提取PSP核心信息
+            core_interests = psp_context.get('core_interests', [])
+            learning_preferences = psp_context.get('learning_preferences', [])
+            communication_style = psp_context.get('communication_style', [])
+            
+            # 构建个性化提示词
+            prompt_parts = []
+            
+            # 基础系统提示
+            prompt_parts.append("You are an AI assistant that provides personalized responses based on the user's interests and preferences.")
+            
+            # 添加用户兴趣信息
+            if core_interests:
+                interests_str = ", ".join(core_interests[:5])  # 限制数量
+                prompt_parts.append(f"The user is particularly interested in: {interests_str}.")
+            
+            # 添加学习偏好
+            if learning_preferences:
+                preferences_str = ", ".join(learning_preferences[:3])
+                prompt_parts.append(f"The user prefers learning through: {preferences_str}.")
+            
+            # 添加沟通风格
+            if communication_style:
+                style_str = ", ".join(communication_style[:2])
+                prompt_parts.append(f"Please communicate in a {style_str} manner.")
+            
+            # 添加当前问题上下文
+            prompt_parts.append(f"The user's current question is: {question}")
+            prompt_parts.append("Please provide a helpful and personalized response.")
+            
+            return " ".join(prompt_parts)
+            
+        except Exception as e:
+            # 如果PSP处理失败，返回通用提示词
+            return f"You are a helpful AI assistant. Please answer the following question: {question}"
     
     def get_app(self) -> FastAPI:
         """获取FastAPI应用实例"""

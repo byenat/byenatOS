@@ -56,17 +56,29 @@ import { ByenatOS } from '@byenatos/sdk';
 
 const byenatOS = new ByenatOS({ apiKey: 'your_api_key' });
 
-// 获取个性化提示词和相关HiNATA内容
-async function getPersonalizedContent(userQuery) {
-  // 获取优化后的个人系统提示词
-  const personalizedPrompt = await byenatOS.getPersonalizedPrompt(userQuery);
+// 方案1：获取问题相关的HiNATA内容（与PSP无关）
+async function getRelevantHiNATA(userQuery) {
+  const response = await byenatOS.queryRelevantHiNATA({
+    user_id: 'user_123',
+    question: userQuery,
+    limit: 5
+  });
   
-  // 获取相关的HiNATA文件内容
-  const relevantHiNATA = await byenatOS.getRelevantHiNATA(userQuery);
+  return response.relevant_hinata;
+}
+
+// 方案2：获取个性化增强内容（PSP + HiNATA结合）
+async function getPersonalizedContent(userQuery) {
+  const response = await byenatOS.getPersonalizedEnhancement({
+    user_id: 'user_123',
+    question: userQuery,
+    context_limit: 5,
+    include_psp_details: false
+  });
   
   return {
-    systemPrompt: personalizedPrompt,
-    contextData: relevantHiNATA
+    systemPrompt: response.personalized_prompt,
+    contextData: response.relevant_context
   };
 }
 
