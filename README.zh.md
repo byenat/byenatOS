@@ -1,4 +1,4 @@
-# ByenatOS - 为APP开发者设计的AI操作系统
+# ByenatOS - 智能信息处理与个性化提示词系统
 
 <div align="center">
 
@@ -13,19 +13,26 @@
 
 ## 🚀 ByenatOS是什么？
 
-ByenatOS是一个**即插即用的 AI 插件**，让应用开发者通过几行代码就能让任何应用获得个性化 AI 能力，同时也可以将其视为是**AI操作系统**，帮助具有 AI 功能的应用获得memory能力，为应用用户提供个性化的 AI 能力。
+ByenatOS是一个**智能信息处理系统**，专注于从外部获取信息并处理成高质量的HiNATA文件，同时持续优化个人系统提示词（PSP），为开发者提供个性化的AI增强服务。
+
+**核心功能**：
+- **信息处理**：将外部信息智能处理成结构化的HiNATA文件（Markdown格式）
+- **PSP优化**：基于持续流入的HiNATA文件动态优化个人系统提示词，准确反映用户偏好
+- **智能匹配**：理解用户提示词，结合PSP从HiNATA文件库中找到最相关的内容
+- **个性化输出**：将相关HiNATA内容与优化后的PSP结合，为任何AI模型提供个性化增强
 
 **核心优势**：
-- 与ChatGPT或Claude只能在各自产品内提供个性化AI体验不同，ByenatOS可以在本地保存 memory，对于支持上传 memory的产品都可以调用，让用户在任何大模型相关产品中都能获得增强的AI体验。同时用户不用绑定在单个大模型上。
-- 如果用户有多个 APP 同时调用 byenatOS 来实现 AI 能力。则 byenatOS 可以帮助用户跨APP收集memory，形成统一的个人memory。
+- 不绑定特定AI模型，生成的PSP和HiNATA内容可用于任何支持的大模型产品
+- 本地存储个人信息，形成跨应用的统一个人知识库，确保隐私安全
 
 ## ⭐ 开发者为什么选择ByenatOS？
 
-- 🚀 **零AI开发经验** - 只需几行代码即可接入个性化AI能力
-- 🎯 **跨APP memory** - 统一的个人memory，支持在不同应用和AI模型中调用
-- 🔐 **隐私优先** - 本地数据处理，永不上传个人敏感信息
-- 🌍 **完全免费** - MIT许可证，无隐藏费用
-- ⚡ **基于本地模型做优化** - 通过工程化能力确保在本地有限算力下跑出最佳的大模型效果
+- 🧠 **智能信息处理** - 自动将外部信息转化为高质量的结构化HiNATA文件
+- 🎯 **动态PSP优化** - 基于完整信息持续优化个人系统提示词，准确反映用户偏好
+- 🔍 **智能内容匹配** - 理解用户意图，精准匹配最相关的HiNATA内容
+- 🔐 **隐私优先** - 本地存储HiNATA文件和PSP，永不上传个人敏感信息
+- 🌍 **模型无关** - 生成的内容适用于任何AI模型，不绑定特定服务商
+- ⚡ **轻量高效** - 专注信息处理，不包含AI交互逻辑，性能优异
 
 ## 🚀 快速开始
 
@@ -43,41 +50,48 @@ npm install @byenatos/sdk
 pip install byenatos-sdk
 ```
 
-### 为您的应用添加AI（5分钟）
+### 集成ByenatOS（5分钟）
 ```javascript
 import { ByenatOS } from '@byenatos/sdk';
 
 const byenatOS = new ByenatOS({ apiKey: 'your_api_key' });
 
-// 为您的应用添加个性化AI
-async function addAIChat(userMessage) {
-  const personalizedPrompt = await byenatOS.getPersonalizedPrompt();
+// 获取个性化提示词和相关HiNATA内容
+async function getPersonalizedContent(userQuery) {
+  // 获取优化后的个人系统提示词
+  const personalizedPrompt = await byenatOS.getPersonalizedPrompt(userQuery);
   
-  const response = await openai.chat.completions.create({
-    messages: [
-      { role: "system", content: personalizedPrompt },
-      { role: "user", content: userMessage }
-    ]
-  });
+  // 获取相关的HiNATA文件内容
+  const relevantHiNATA = await byenatOS.getRelevantHiNATA(userQuery);
   
-  return response.choices[0].message.content;
+  return {
+    systemPrompt: personalizedPrompt,
+    contextData: relevantHiNATA
+  };
 }
 
-// 就这么简单！您的应用现在拥有跨APP memory
-const aiResponse = await addAIChat("帮我分析今天的工作效率");
+// 使用获取的内容与任何AI模型交互
+const { systemPrompt, contextData } = await getPersonalizedContent("帮我分析今天的工作效率");
+
+// 您可以将这些内容用于任何AI模型
+const response = await yourPreferredAI.chat({
+  system: systemPrompt,
+  context: contextData,
+  user: "帮我分析今天的工作效率"
+});
 ```
 
-**🎉 完成！** 您的应用现在拥有了即插即用的个性化AI插件，可以从所有应用程序的用户行为中学习。
+**🎉 完成！** 您的应用现在可以获取个性化的提示词和相关信息，用于增强任何AI模型的表现。
 
 ## 📊 对比
 
-| 传统AI开发 | ByenatOS插件集成 |
-|------------|----------------|
-| 需要AI专业知识 | 零AI开发经验 |
-| 6个月开发周期 | 只需几行代码 |
-| 高昂训练成本 | 完全免费 |
-| 产品锁定的memory | 跨APP统一memory |
-| 隐私合规风险 | 内置保护 |
+| 传统信息处理 | ByenatOS智能处理 |
+|------------|-----------------|
+| 手动整理信息 | 自动处理成HiNATA文件 |
+| 静态提示词 | 动态优化的PSP |
+| 分散的知识管理 | 统一的个人知识库 |
+| 绑定特定AI服务 | 适用于任何AI模型 |
+| 隐私合规风险 | 本地存储保护 |
 
 ## 🤝 贡献
 
@@ -123,6 +137,6 @@ MIT许可证 - 详见[LICENSE](LICENSE)。
 
 **⭐ 如果这个项目对您有帮助，请给我们一个Star！**
 
-*为AI时代构建即插即用的个性化AI插件生态* 🚀
+*为AI时代构建智能信息处理与个性化提示词优化系统* 🚀
 
 </div>
