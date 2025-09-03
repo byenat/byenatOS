@@ -18,8 +18,8 @@ ByenatOS是一个**智能信息处理系统**，专注于从外部获取信息�
 **核心功能**：
 - **信息处理**：将外部信息智能处理成结构化的HiNATA文件（Markdown格式）
 - **PSP优化**：基于持续流入的HiNATA文件动态优化个人系统提示词，准确反映用户偏好
-- **智能匹配**：理解用户提示词，结合PSP从HiNATA文件库中找到最相关的内容
-- **个性化输出**：将相关HiNATA内容与优化后的PSP结合，为任何AI模型提供个性化增强
+- **智能匹配**：理解用户问题，从HiNATA文件库中找到最相关的内容
+- **上下文构建**：将PSP（个性化组件）和相关HiNATA（知识组件）组合，为AI模型提供完整上下文
 
 **核心优势**：
 - 不绑定特定AI模型，生成的PSP和HiNATA内容可用于任何支持的大模型产品
@@ -56,39 +56,53 @@ import { ByenatOS } from '@byenatos/sdk';
 
 const byenatOS = new ByenatOS({ apiKey: 'your_api_key' });
 
-// 方案1：获取问题相关的HiNATA内容（与PSP无关）
-async function getRelevantHiNATA(userQuery) {
-  const response = await byenatOS.queryRelevantHiNATA({
+// 方案1：分别获取上下文组件，自行构建完整上下文
+async function buildContextManually(userQuery) {
+  // 获取个性化组件（PSP）
+  const pspResponse = await byenatOS.getPSPContext({
+    user_id: 'user_123',
+    current_request: userQuery
+  });
+  
+  // 获取知识组件（相关HiNATA）
+  const hinataResponse = await byenatOS.queryRelevantHiNATA({
     user_id: 'user_123',
     question: userQuery,
     limit: 5
   });
   
-  return response.relevant_hinata;
+  // 手动构建完整上下文
+  const fullContext = {
+    personalization: pspResponse.context,  // PSP提供个性化
+    knowledge: hinataResponse.relevant_hinata,  // HiNATA提供相关知识
+    question: userQuery
+  };
+  
+  return fullContext;
 }
 
-// 方案2：获取个性化增强内容（PSP + HiNATA结合）
-async function getPersonalizedContent(userQuery) {
+// 方案2：使用集成API获取预构建的上下文
+async function getPrebuiltContext(userQuery) {
   const response = await byenatOS.getPersonalizedEnhancement({
     user_id: 'user_123',
     question: userQuery,
-    context_limit: 5,
-    include_psp_details: false
+    context_limit: 5
   });
   
+  // 返回已构建好的上下文
   return {
-    systemPrompt: response.personalized_prompt,
-    contextData: response.relevant_context
+    systemPrompt: response.personalized_prompt,  // 包含PSP的个性化提示
+    knowledgeContext: response.relevant_context  // 相关HiNATA知识
   };
 }
 
-// 使用获取的内容与任何AI模型交互
-const { systemPrompt, contextData } = await getPersonalizedContent("帮我分析今天的工作效率");
+// 使用完整上下文与AI模型交互
+const contextData = await getPrebuiltContext("帮我分析今天的工作效率");
 
-// 您可以将这些内容用于任何AI模型
+// 将完整上下文提供给AI模型
 const response = await yourPreferredAI.chat({
-  system: systemPrompt,
-  context: contextData,
+  system: contextData.systemPrompt,        // PSP个性化组件
+  context: contextData.knowledgeContext,   // HiNATA知识组件
   user: "帮我分析今天的工作效率"
 });
 ```

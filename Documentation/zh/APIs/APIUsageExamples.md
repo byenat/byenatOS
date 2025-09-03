@@ -2,7 +2,22 @@
 
 ## 概述
 
-本文档提供ByenatOS核心API的详细使用示例，展示如何根据新的产品定位正确使用各个API接口。
+本文档提供ByenatOS核心API的详细使用示例，展示如何正确获取和使用上下文组件。
+
+## 重要概念
+
+### 上下文构建原理
+
+```
+完整上下文 = PSP个性化组件 + HiNATA知识组件 + 用户问题 + [其他信息]
+```
+
+- **PSP个性化组件**：让AI响应更符合用户特点
+- **HiNATA知识组件**：为AI提供相关知识和背景信息  
+- **用户问题**：当前需要解决的具体问题
+
+**byenatOS职责**：提供高质量的PSP和HiNATA组件
+**APP职责**：根据需求组装完整上下文，与AI模型交互
 
 ## 核心API接口
 
@@ -11,7 +26,7 @@
 #### 接口信息
 - **端点**: `POST /api/hinata/query-relevant`
 - **权限**: `HINATA_QUERY`
-- **用途**: 根据用户问题检索最相关的HiNATA内容，与PSP无关
+- **用途**: 获取上下文的知识组件，根据问题检索相关HiNATA内容
 
 #### 请求示例
 
@@ -25,7 +40,7 @@ const response = await byenatOS.queryRelevantHiNATA({
   include_metadata: true
 });
 
-console.log('相关HiNATA:', response.relevant_hinata);
+console.log('知识组件:', response.relevant_hinata);
 ```
 
 ```python
@@ -38,7 +53,7 @@ response = await byenatos.query_relevant_hinata(
     include_metadata=True
 )
 
-print('相关HiNATA:', response.relevant_hinata)
+print('知识组件:', response.relevant_hinata)
 ```
 
 #### 响应示例
@@ -81,7 +96,7 @@ print('相关HiNATA:', response.relevant_hinata)
 #### 接口信息
 - **端点**: `POST /api/enhancement/personalized`
 - **权限**: `ENHANCEMENT_ACCESS`
-- **用途**: 获取个性化系统提示词和相关HiNATA内容的组合
+- **用途**: 获取构建完整上下文所需的两个核心组件（PSP个性化组件 + HiNATA知识组件）
 
 #### 请求示例
 
@@ -93,8 +108,8 @@ const response = await byenatOS.getPersonalizedEnhancement({
   include_psp_details: false
 });
 
-console.log('个性化提示词:', response.personalized_prompt);
-console.log('相关上下文:', response.relevant_context);
+console.log('PSP个性化组件:', response.personalized_prompt);
+console.log('HiNATA知识组件:', response.knowledge_components);
 ```
 
 #### 响应示例
@@ -103,8 +118,8 @@ console.log('相关上下文:', response.relevant_context);
 {
   "user_id": "user_123",
   "question": "帮我制定学习计划",
-  "personalized_prompt": "You are an AI assistant that provides personalized responses based on the user's interests and preferences. The user is particularly interested in: programming, machine learning, system design. The user prefers learning through: hands-on practice, visual examples. Please communicate in a structured, detailed manner. The user's current question is: 帮我制定学习计划 Please provide a helpful and personalized response.",
-  "relevant_context": [
+  "personalized_prompt": "You are an AI assistant that provides personalized responses. User interests: programming, machine learning, system design. Learning style: hands-on practice, visual examples. Communication style: structured, detailed. Use the provided knowledge context to give accurate answers. Combine your knowledge with the user's personalization preferences.",
+  "knowledge_components": [
     {
       "content_summary": "有效的学习计划应该包含明确的目标设定...",
       "relevance_score": 0.89,
@@ -180,24 +195,26 @@ class SmartQAApp {
   
   async answerQuestion(userId, question) {
     try {
-      // 方案1: 仅获取相关HiNATA内容
+      // 方案1: 仅使用知识组件（HiNATA）
       const hinataResponse = await this.byenatOS.queryRelevantHiNATA({
         user_id: userId,
         question: question,
         limit: 5
       });
       
-      // 使用获取的上下文调用AI模型
-      const context = hinataResponse.relevant_hinata
+      // 构建简单上下文（仅包含知识组件）
+      const knowledgeContext = hinataResponse.relevant_hinata
         .map(item => item.content_summary)
         .join('\n');
       
-      const aiResponse = await this.callAIModel({
-        context: context,
-        question: question
-      });
+      // 构建完整上下文并调用AI模型
+      const fullContext = {
+        system: "You are a helpful AI assistant. Use the provided knowledge to answer accurately.",
+        knowledge: knowledgeContext,
+        user: question
+      };
       
-      return aiResponse;
+      return await this.callAIModel(fullContext);
       
     } catch (error) {
       console.error('问答失败:', error);
@@ -207,21 +224,21 @@ class SmartQAApp {
   
   async answerQuestionPersonalized(userId, question) {
     try {
-      // 方案2: 获取个性化增强内容
+      // 方案2: 使用完整的上下文组件（PSP + HiNATA）
       const enhancementResponse = await this.byenatOS.getPersonalizedEnhancement({
         user_id: userId,
         question: question,
         context_limit: 5
       });
       
-      // 使用个性化提示词和上下文
-      const aiResponse = await this.callAIModel({
-        systemPrompt: enhancementResponse.personalized_prompt,
-        context: enhancementResponse.relevant_context,
-        question: question
-      });
+      // 构建完整上下文
+      const fullContext = {
+        system: enhancementResponse.personalized_prompt,  // PSP个性化组件
+        knowledge: this.formatKnowledgeComponents(enhancementResponse.knowledge_components),  // HiNATA知识组件
+        user: question
+      };
       
-      return aiResponse;
+      return await this.callAIModel(fullContext);
       
     } catch (error) {
       console.error('个性化问答失败:', error);
@@ -229,10 +246,21 @@ class SmartQAApp {
     }
   }
   
-  async callAIModel(params) {
-    // 这里调用您选择的AI模型
-    // 可以是OpenAI、Claude、或本地模型
-    return await yourPreferredAI.chat(params);
+  formatKnowledgeComponents(components) {
+    // 将HiNATA知识组件格式化为上下文字符串
+    return components
+      .map(item => `[${item.source}] ${item.content_summary}`)
+      .join('\n\n');
+  }
+  
+  async callAIModel(fullContext) {
+    // 使用完整上下文调用AI模型
+    return await yourPreferredAI.chat({
+      messages: [
+        { role: "system", content: fullContext.system },
+        { role: "user", content: `Context: ${fullContext.knowledge}\n\nQuestion: ${fullContext.user}` }
+      ]
+    });
   }
 }
 ```

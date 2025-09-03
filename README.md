@@ -18,8 +18,8 @@ ByenatOS is an **intelligent information processing system** that focuses on acq
 **Core Functions**:
 - **Information Processing**: Intelligently processes external information into structured HiNATA files (Markdown format)
 - **PSP Optimization**: Dynamically optimizes Personal System Prompts based on continuously flowing HiNATA files to accurately reflect user preferences
-- **Intelligent Matching**: Understands user prompts, combines with PSP to find the most relevant content from HiNATA file library
-- **Personalized Output**: Combines relevant HiNATA content with optimized PSP to provide personalized enhancement for any AI model
+- **Intelligent Matching**: Understands user questions and finds the most relevant content from HiNATA file library
+- **Context Building**: Combines PSP (personalization component) and relevant HiNATA (knowledge component) to provide complete context for AI models
 
 **Core Advantages**:
 - Not bound to specific AI models, generated PSP and HiNATA content can be used with any supported large model products
@@ -56,39 +56,53 @@ import { ByenatOS } from '@byenatos/sdk';
 
 const byenatOS = new ByenatOS({ apiKey: 'your_api_key' });
 
-// Option 1: Get question-relevant HiNATA content (independent of PSP)
-async function getRelevantHiNATA(userQuery) {
-  const response = await byenatOS.queryRelevantHiNATA({
+// Option 1: Get context components separately and build complete context manually
+async function buildContextManually(userQuery) {
+  // Get personalization component (PSP)
+  const pspResponse = await byenatOS.getPSPContext({
+    user_id: 'user_123',
+    current_request: userQuery
+  });
+  
+  // Get knowledge component (relevant HiNATA)
+  const hinataResponse = await byenatOS.queryRelevantHiNATA({
     user_id: 'user_123',
     question: userQuery,
     limit: 5
   });
   
-  return response.relevant_hinata;
+  // Manually build complete context
+  const fullContext = {
+    personalization: pspResponse.context,  // PSP provides personalization
+    knowledge: hinataResponse.relevant_hinata,  // HiNATA provides relevant knowledge
+    question: userQuery
+  };
+  
+  return fullContext;
 }
 
-// Option 2: Get personalized enhancement (PSP + HiNATA combined)
-async function getPersonalizedContent(userQuery) {
+// Option 2: Use integrated API to get pre-built context
+async function getPrebuiltContext(userQuery) {
   const response = await byenatOS.getPersonalizedEnhancement({
     user_id: 'user_123',
     question: userQuery,
-    context_limit: 5,
-    include_psp_details: false
+    context_limit: 5
   });
   
+  // Return pre-built context
   return {
-    systemPrompt: response.personalized_prompt,
-    contextData: response.relevant_context
+    systemPrompt: response.personalized_prompt,  // Contains PSP personalization
+    knowledgeContext: response.relevant_context  // Relevant HiNATA knowledge
   };
 }
 
-// Use the retrieved content with any AI model
-const { systemPrompt, contextData } = await getPersonalizedContent("Help me analyze today's work efficiency");
+// Use complete context with AI model
+const contextData = await getPrebuiltContext("Help me analyze today's work efficiency");
 
-// You can use this content with any AI model
+// Provide complete context to AI model
 const response = await yourPreferredAI.chat({
-  system: systemPrompt,
-  context: contextData,
+  system: contextData.systemPrompt,        // PSP personalization component
+  context: contextData.knowledgeContext,   // HiNATA knowledge component
   user: "Help me analyze today's work efficiency"
 });
 ```

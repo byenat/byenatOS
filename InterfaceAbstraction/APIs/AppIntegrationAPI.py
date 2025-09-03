@@ -184,12 +184,12 @@ class HiNATAQueryResponse(BaseModel):
 
 
 class PersonalizedEnhancementResponse(BaseModel):
-    """个性化增强响应"""
+    """个性化增强响应 - 提供构建完整上下文所需的组件"""
     user_id: str
     question: str
-    personalized_prompt: str
-    relevant_context: List[Dict[str, Any]]
-    psp_summary: Dict[str, Any]
+    personalized_prompt: str  # PSP个性化组件（融入系统提示词）
+    knowledge_components: List[Dict[str, Any]]  # HiNATA知识组件
+    psp_summary: Dict[str, Any]  # PSP摘要信息
     processing_time: float
 
 
@@ -880,16 +880,17 @@ class AppIntegrationAPI:
                     psp_context, request.question
                 )
                 
-                # 格式化HiNATA上下文
-                relevant_context = []
+                # 格式化HiNATA知识组件
+                knowledge_components = []
                 for result in hinata_results:
-                    context_item = {
+                    knowledge_item = {
                         'content_summary': result.content_summary,
                         'relevance_score': result.relevance_score,
                         'source': result.metadata.get('source', ''),
-                        'timestamp': result.metadata.get('timestamp', '')
+                        'timestamp': result.metadata.get('timestamp', ''),
+                        'component_type': 'knowledge'  # 明确标识为知识组件
                     }
-                    relevant_context.append(context_item)
+                    knowledge_components.append(knowledge_item)
                 
                 # 生成PSP摘要（隐私过滤后）
                 psp_summary = self.privacy_filter.filter_psp_context(
@@ -901,8 +902,8 @@ class AppIntegrationAPI:
                 return PersonalizedEnhancementResponse(
                     user_id=request.user_id,
                     question=request.question,
-                    personalized_prompt=personalized_prompt,
-                    relevant_context=relevant_context,
+                    personalized_prompt=personalized_prompt,  # PSP个性化组件
+                    knowledge_components=knowledge_components,  # HiNATA知识组件
                     psp_summary=psp_summary if request.include_psp_details else {},
                     processing_time=processing_time
                 )
@@ -982,43 +983,47 @@ class AppIntegrationAPI:
             return []
     
     async def _generate_personalized_prompt(self, psp_context: Dict[str, Any], question: str) -> str:
-        """基于PSP上下文和问题生成个性化提示词"""
+        """
+        基于PSP上下文和问题生成个性化系统提示词
+        
+        注意：这里生成的是融合了PSP个性化信息的系统提示词，
+        它是完整上下文的个性化组件部分，而不是完整上下文本身。
+        完整上下文 = 这个个性化提示词 + HiNATA知识组件 + 用户问题
+        """
         try:
-            # 提取PSP核心信息
+            # 提取PSP核心信息（个性化组件）
             core_interests = psp_context.get('core_interests', [])
             learning_preferences = psp_context.get('learning_preferences', [])
             communication_style = psp_context.get('communication_style', [])
             
-            # 构建个性化提示词
+            # 构建个性化系统提示词（上下文的个性化组件）
             prompt_parts = []
             
             # 基础系统提示
-            prompt_parts.append("You are an AI assistant that provides personalized responses based on the user's interests and preferences.")
+            prompt_parts.append("You are an AI assistant that provides personalized responses.")
             
-            # 添加用户兴趣信息
+            # 融入用户个性化信息（PSP组件）
             if core_interests:
-                interests_str = ", ".join(core_interests[:5])  # 限制数量
-                prompt_parts.append(f"The user is particularly interested in: {interests_str}.")
+                interests_str = ", ".join(core_interests[:5])
+                prompt_parts.append(f"User interests: {interests_str}.")
             
-            # 添加学习偏好
             if learning_preferences:
                 preferences_str = ", ".join(learning_preferences[:3])
-                prompt_parts.append(f"The user prefers learning through: {preferences_str}.")
+                prompt_parts.append(f"Learning style: {preferences_str}.")
             
-            # 添加沟通风格
             if communication_style:
                 style_str = ", ".join(communication_style[:2])
-                prompt_parts.append(f"Please communicate in a {style_str} manner.")
+                prompt_parts.append(f"Communication style: {style_str}.")
             
-            # 添加当前问题上下文
-            prompt_parts.append(f"The user's current question is: {question}")
-            prompt_parts.append("Please provide a helpful and personalized response.")
+            # 指导AI如何使用知识组件
+            prompt_parts.append("Use the provided knowledge context to give accurate answers.")
+            prompt_parts.append("Combine your knowledge with the user's personalization preferences.")
             
             return " ".join(prompt_parts)
             
         except Exception as e:
-            # 如果PSP处理失败，返回通用提示词
-            return f"You are a helpful AI assistant. Please answer the following question: {question}"
+            # 如果PSP处理失败，返回通用系统提示词
+            return "You are a helpful AI assistant. Use the provided context to answer questions accurately."
     
     def get_app(self) -> FastAPI:
         """获取FastAPI应用实例"""
